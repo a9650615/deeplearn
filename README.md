@@ -13,4 +13,8 @@ LeNetTensorflow
  ```bash
   python ./tensorflow/network train
  ```
- still not have test yet :)
+if you want to fetch data, after run train at least once, run
+```bash
+ python ./tensorflow/network patch
+```
+the patch data will all in deep_data folder

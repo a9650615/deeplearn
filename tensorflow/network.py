@@ -11,6 +11,8 @@ import prettytensor as pt
 import numpy as np
 import time
 
+np.set_printoptions(threshold=np.inf)
+
 cifar10.data_path = "data/CIFAR-10/"
 cifar10.maybe_download_and_extract() # pre fetch data
 class_names = cifar10.load_class_names()
@@ -21,6 +23,7 @@ images_test, cls_test, labels_test = cifar10.load_test_data()
 
 IMG_SIZE_CROPPED = 24 #24*24 pixel
 SAVE_DIR = 'save/'
+PATCH_DIR = 'deep_data/'
 train_batch_size = 64
 
 print(class_names)
@@ -250,20 +253,18 @@ if __name__ == '__main__':
     # weights_conv1 = get_weights_variable(layer_name='layer_conv1')
     # weights_conv2 = get_weights_variable(layer_name='layer_conv2')
 
+    #trainable=False 表示不用优化这个变量
+    global_step = tf.Variable(initial_value=0,
+                            name='global_step', trainable=False)
+
+    #get lose
+    _, loss = create_network(training=True)
+
+    #count lose
+    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss, global_step=global_step)
+
+    #------ train ---------
     if sys.argv[1] == 'train':
-        #------ train ---------
-        #trainable=False 表示不用优化这个变量
-        global_step = tf.Variable(initial_value=0,
-                                name='global_step', trainable=False)
-
-        #get lose
-        _, loss = create_network(training=True)
-
-        #count lose
-        optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss, global_step=global_step)
-
-
-        #------ test---------
         y_pred, _ = create_network(training=False)
         y_pred_cls = tf.argmax(y_pred, dimension=1)
         correct_prediction = tf.equal(y_pred_cls, y_true_cls)
@@ -274,9 +275,22 @@ if __name__ == '__main__':
         #save varibles
         saver = tf.train.Saver()
 
+        session = restore()
+        session.run(tf.initialize_all_variables())
 
+        optimize(num_iterations = 500)
+    elif sys.argv[1] == 'patch':
+        if not os.path.exists(PATCH_DIR):
+            os.makedirs(PATCH_DIR)
+        session = restore()
+        session.run(tf.initialize_all_variables())
 
-    session = restore()
-    session.run(tf.initialize_all_variables())
-    optimize(num_iterations = 500)
+        all_vars = tf.trainable_variables()
+        for v in all_vars:
+            deep_data = open("deep_data/%s.txt" % str(v.name).replace('/', '_'), 'w')
+            # deep_data.writelines(str(list(sess.run(v))))
+            deep_data.writelines(str(session.run(v)))
+            deep_data.close()
+
+    
 	# tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

@@ -11,3 +11,4 @@ pip-selfcheck.json
 __pycache__
 /data/*
 /save/*
+/deep_data/*
