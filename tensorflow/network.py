@@ -19,6 +19,7 @@ class_names = cifar10.load_class_names()
 images_train, cls_train, labels_train = cifar10.load_training_data()
 images_test, cls_test, labels_test = cifar10.load_test_data()
 # print(cifar10.load_training_data()[0])
+# print(np.transpose(images_train[0], (2, 1, 0)).shape)
 # print(cls_train)
 
 IMG_SIZE_CROPPED = 24 #24*24 pixel
@@ -28,7 +29,8 @@ train_batch_size = 64
 
 print(class_names)
 
-x = tf.placeholder(tf.float32, shape=[None, cifar10.img_size, cifar10.img_size, cifar10.num_channels], name='x')
+# x = tf.placeholder(tf.float32, shape=[None, cifar10.img_size, cifar10.img_size, cifar10.num_channels], name='x')
+x = tf.placeholder(tf.float32, shape=[None, cifar10.num_channels, cifar10.img_size, cifar10.img_size], name='x')
 y_true = tf.placeholder(tf.float32, shape=[None, cifar10.num_classes], name='y_true')
 y_true_cls = tf.argmax(y_true, dimension=1)
 
@@ -50,7 +52,7 @@ def random_batch():
 def pre_process_image(image, training):
     # This function takes a single image as input,
     # and a boolean whether to build the training or testing graph.
-    
+    # shape [3, 32, 32]
     if training:
         # For training, add the following to the TensorFlow graph.
 
@@ -109,11 +111,11 @@ def main_network(images, training):
     # the use of so-called batch-normalization in the first layer.
     with pt.defaults_scope(activation_fn=tf.nn.relu, phase=phase):
         y_pred, loss = x_pretty.\
-            conv2d(kernel=5, depth=64, stride=5, name='layer_conv1', batch_normalize=True).\
+            conv2d(kernel=5, depth=32, stride=5, name='layer_conv1', batch_normalize=True).\
             max_pool(kernel=2, stride=2).\
             conv2d(kernel=5, depth=32, name='layer_conv2').\
             average_pool(kernel=2, stride=2).\
-            conv2d(kernel=5, depth=32, name='layer_conv3').\
+            conv2d(kernel=5, depth=64, name='layer_conv3').\
             average_pool(kernel=2, stride=2).\
             flatten().\
             fully_connected(size=1024, name='layer_fc1').\
@@ -291,11 +293,18 @@ if __name__ == '__main__':
         all_vars = tf.trainable_variables()
         for v in all_vars:
             data = session.run(v)
+            print('Before:{0} ,Array shape: {1}, {2}\n'.format(v.name, data.shape, len(data.shape)))
+            if len(data.shape) == 4:
+                data = np.transpose(data, (3, 2, 1, 0))
+            elif len(data.shape) == 3:
+                data = np.transpose(data, (2, 1, 0))
+            elif len(data.shape) == 2:
+                data = np.transpose(data, (1, 0))
+            print('After:{0} ,Array shape: {1}, {2}\n'.format(v.name, data.shape, len(data.shape)))
+            data.tofile("deep_data/%s.txt" % str(v.name).replace('/', '_'), sep=" ",format="%s")
             # I'm writing a header here just for the sake of readability
             # Any line starting with "#" will be ignored by numpy.loadtxt
             # outfile.write('# Array shape: {0}\n'.format(data.shape))
-            print('{0} ,Array shape: {1}\n'.format(v.name, data.shape))
-            # data.tofile("deep_data/%s.txt" % str(v.name).replace('/', '_'), sep=" ",format="%s")
             # np.savez("deep_data/%s.txt" % str(v.name).replace('/', '_'), data)
             # deep_data = open("deep_data/%s.txt" % str(v.name).replace('/', '_'), 'w')
             # # deep_data.writelines(str(list(sess.run(v))))
@@ -311,6 +320,12 @@ if __name__ == '__main__':
         all_vars = tf.trainable_variables()
         for v in all_vars:
             data = session.run(v)
+            if len(data.shape) == 4:
+                data = np.transpose(data, (3, 2, 1, 0))
+            elif len(data.shape) == 3:
+                data = np.transpose(data, (2, 1, 0))
+            elif len(data.shape) == 2:
+                data = np.transpose(data, (1, 0))
             deep_data = open("deep_data/%s.txt" % str(v.name).replace('/', '_'), 'w')
             deep_data.writelines(str(data))
     
