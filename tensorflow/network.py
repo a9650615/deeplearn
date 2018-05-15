@@ -94,6 +94,7 @@ def pre_process(images, training):
 
 def main_network(images, training):
     # Wrap the input images as a Pretty Tensor object.
+    # print(tf.reverse(images, axis=2))
     x_pretty = pt.wrap(images)
 
     # Pretty Tensor uses special numbers to distinguish between
@@ -108,13 +109,15 @@ def main_network(images, training):
     # the use of so-called batch-normalization in the first layer.
     with pt.defaults_scope(activation_fn=tf.nn.relu, phase=phase):
         y_pred, loss = x_pretty.\
-            conv2d(kernel=5, depth=64, name='layer_conv1', batch_normalize=True).\
+            conv2d(kernel=5, depth=64, stride=5, name='layer_conv1', batch_normalize=True).\
             max_pool(kernel=2, stride=2).\
-            conv2d(kernel=5, depth=64, name='layer_conv2').\
-            max_pool(kernel=2, stride=2).\
+            conv2d(kernel=5, depth=32, name='layer_conv2').\
+            average_pool(kernel=2, stride=2).\
+            conv2d(kernel=5, depth=32, name='layer_conv3').\
+            average_pool(kernel=2, stride=2).\
             flatten().\
-            fully_connected(size=256, name='layer_fc1').\
-            fully_connected(size=128, name='layer_fc2').\
+            fully_connected(size=1024, name='layer_fc1').\
+            fully_connected(size=64, name='layer_fc2').\
             softmax_classifier(num_classes=cifar10.num_classes, labels=y_true)
 
     return y_pred, loss
@@ -213,7 +216,7 @@ def optimize(num_iterations):
                                   feed_dict=feed_dict_train)
 
         # Print status to screen every 100 iterations (and last).
-        if (i_global % 100 == 0) or (i == num_iterations - 1):
+        if (i_global % train_batch_size == 0) or (i == num_iterations - 1):
             # Calculate the accuracy on the training-batch.
             batch_acc = session.run(accuracy,
                                     feed_dict=feed_dict_train)
@@ -223,7 +226,7 @@ def optimize(num_iterations):
             print(msg.format(i_global, batch_acc))
 
         # Save a checkpoint to disk every 1000 iterations (and last).
-        if (i_global % 500 == 0) or (i == num_iterations - 1):
+        if (i_global % train_batch_size == 0) or (i == num_iterations - 1):
             # Save all variables of the TensorFlow graph to a
             # checkpoint. Append the global_step counter
             # to the filename so we save the last several checkpoints.
@@ -278,19 +281,37 @@ if __name__ == '__main__':
         session = restore()
         session.run(tf.initialize_all_variables())
 
-        optimize(num_iterations = 500)
+        optimize(num_iterations = 100)
     elif sys.argv[1] == 'patch':
         if not os.path.exists(PATCH_DIR):
             os.makedirs(PATCH_DIR)
         session = restore()
-        session.run(tf.initialize_all_variables())
+        session.run(tf.global_variables_initializer())
 
         all_vars = tf.trainable_variables()
         for v in all_vars:
-            deep_data = open("deep_data/%s.txt" % str(v.name).replace('/', '_'), 'w')
-            # deep_data.writelines(str(list(sess.run(v))))
-            deep_data.writelines(str(session.run(v)))
-            deep_data.close()
+            data = session.run(v)
+            # I'm writing a header here just for the sake of readability
+            # Any line starting with "#" will be ignored by numpy.loadtxt
+            # outfile.write('# Array shape: {0}\n'.format(data.shape))
+            print('{0} ,Array shape: {1}\n'.format(v.name, data.shape))
+            # data.tofile("deep_data/%s.txt" % str(v.name).replace('/', '_'), sep=" ",format="%s")
+            # np.savez("deep_data/%s.txt" % str(v.name).replace('/', '_'), data)
+            # deep_data = open("deep_data/%s.txt" % str(v.name).replace('/', '_'), 'w')
+            # # deep_data.writelines(str(list(sess.run(v))))
+            # deep_data.writelines(str(session.run(v)))
+            # deep_data.close()
+            # np.savetxt("deep_data/%s.txt" % str(v.name).replace('/', '_'), session.run(v))
+    elif sys.argv[1] == 'print':
+        if not os.path.exists(PATCH_DIR):
+            os.makedirs(PATCH_DIR)
+        session = restore()
+        session.run(tf.global_variables_initializer())
 
+        all_vars = tf.trainable_variables()
+        for v in all_vars:
+            data = session.run(v)
+            deep_data = open("deep_data/%s.txt" % str(v.name).replace('/', '_'), 'w')
+            deep_data.writelines(str(data))
     
 	# tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

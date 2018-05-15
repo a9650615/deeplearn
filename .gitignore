@@ -12,3 +12,4 @@ __pycache__
 /data/*
 /save/*
 /deep_data/*
+.DS_Store
