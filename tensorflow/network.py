@@ -25,12 +25,12 @@ images_test, cls_test, labels_test = cifar10.load_test_data()
 IMG_SIZE_CROPPED = 24 #24*24 pixel
 SAVE_DIR = 'save/'
 PATCH_DIR = 'deep_data/'
-train_batch_size = 64
+train_batch_size = 300
 
 print(class_names)
 
-# x = tf.placeholder(tf.float32, shape=[None, cifar10.img_size, cifar10.img_size, cifar10.num_channels], name='x')
-x = tf.placeholder(tf.float32, shape=[None, cifar10.num_channels, cifar10.img_size, cifar10.img_size], name='x')
+x = tf.placeholder(tf.float32, shape=[None, cifar10.img_size, cifar10.img_size, cifar10.num_channels], name='x')
+# x = tf.placeholder(tf.float32, shape=[None, cifar10.num_channels, cifar10.img_size, cifar10.img_size], name='x')
 y_true = tf.placeholder(tf.float32, shape=[None, cifar10.num_classes], name='y_true')
 y_true_cls = tf.argmax(y_true, dimension=1)
 
@@ -218,7 +218,7 @@ def optimize(num_iterations):
                                   feed_dict=feed_dict_train)
 
         # Print status to screen every 100 iterations (and last).
-        if (i_global % train_batch_size == 0) or (i == num_iterations - 1):
+        if (i_global % (train_batch_size/10) == 0) or (i == num_iterations - 1):
             # Calculate the accuracy on the training-batch.
             batch_acc = session.run(accuracy,
                                     feed_dict=feed_dict_train)
@@ -228,7 +228,7 @@ def optimize(num_iterations):
             print(msg.format(i_global, batch_acc))
 
         # Save a checkpoint to disk every 1000 iterations (and last).
-        if (i_global % train_batch_size == 0) or (i == num_iterations - 1):
+        if (i_global % (train_batch_size/10) == 0) or (i == num_iterations - 1):
             # Save all variables of the TensorFlow graph to a
             # checkpoint. Append the global_step counter
             # to the filename so we save the last several checkpoints.
@@ -251,9 +251,6 @@ if __name__ == '__main__':
 
     if not os.path.exists(SAVE_DIR):
         os.makedirs(SAVE_DIR)
-	
-    global_step = tf.Variable(initial_value=0,
-							name='global_step', trainable=False)
 
     # weights_conv1 = get_weights_variable(layer_name='layer_conv1')
     # weights_conv2 = get_weights_variable(layer_name='layer_conv2')
@@ -282,11 +279,13 @@ if __name__ == '__main__':
 
         session = restore()
         session.run(tf.initialize_all_variables())
-
-        optimize(num_iterations = 100)
+        tf.summary.scalar('loss', loss)
+        writer = tf.summary.FileWriter("logs/", session.graph)
+        optimize(num_iterations = train_batch_size)
     elif sys.argv[1] == 'patch':
         if not os.path.exists(PATCH_DIR):
             os.makedirs(PATCH_DIR)
+        saver = tf.train.Saver()
         session = restore()
         session.run(tf.global_variables_initializer())
 

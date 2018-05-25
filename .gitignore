@@ -12,4 +12,6 @@ __pycache__
 /data/*
 /save/*
 /deep_data/*
+/tensorflow/network2_save/*
+/tensorflow/data/*
 .DS_Store

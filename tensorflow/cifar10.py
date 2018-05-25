@@ -122,7 +122,7 @@ def _convert_images(raw):
     images = raw_float.reshape([-1, num_channels, img_size, img_size])
 
     # Reorder the indices of the array.
-    images = images.transpose([0, 2, 3, 1])
+    # images = images.transpose([0, 2, 3, 1]) # overhere do it
 
     return images
 
@@ -187,7 +187,8 @@ def load_training_data():
     """
 
     # Pre-allocate the arrays for the images and class-numbers for efficiency.
-    images = np.zeros(shape=[_num_images_train, img_size, img_size, num_channels], dtype=float)
+    # images = np.zeros(shape=[_num_images_train, img_size, img_size, num_channels], dtype=float)
+    images = np.zeros(shape=[_num_images_train, num_channels, img_size, img_size], dtype=float)
     cls = np.zeros(shape=[_num_images_train], dtype=int)
 
     # Begin-index for the current batch.
